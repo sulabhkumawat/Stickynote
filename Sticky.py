@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import messagebox, Menu, Text, font 
 from datetime import datetime
 
-# --- Configuration Constants (Unchanged) ---
+# --- Configuration Constants ---
 THEME_BG_MAIN = 'black'
 THEME_BG_NOTE = '#111111'  
 THEME_FG_GREEN = '#00FF00' 
@@ -54,9 +54,12 @@ class NoteFrame(tk.Frame):
 class StickyNotesApp:
     def __init__(self, master):
         self.master = master
-        master.title("Sticky Notes Terminal - Stable Heading Resize")
+        master.title("Sticky Notes Terminal - Always On Top")
         master.geometry("600x400")
         master.config(bg=THEME_BG_MAIN)
+        
+        # --- FIX: Set the window to always stay on top ---
+        master.wm_attributes('-topmost', 1) 
         
         master.grid_columnconfigure(0, weight=1) 
         master.grid_rowconfigure(1, weight=1) 
@@ -67,10 +70,7 @@ class StickyNotesApp:
         self._setup_note_container()
         self._setup_menu_bar()
         
-        # Bind the resize event for dynamic scaling during resizing
         self.master.bind('<Configure>', self._resize_heading_font)
-        
-        # --- NEW FIX: Schedule initial font size calculation after the window is drawn ---
         self.master.after(100, self._initial_heading_resize)
 
         self.add_note()
@@ -80,7 +80,6 @@ class StickyNotesApp:
         current_date = datetime.now().strftime("%Y-%m-%d")
         heading_text = f"TODAY'S MISSION - {current_date}"
         
-        # Initialize a Tkinter Font object to control the size
         self.heading_font = font.Font(family='Consolas', size=18, weight='bold')
 
         self.heading_label = tk.Label(
@@ -93,36 +92,24 @@ class StickyNotesApp:
         self.heading_label.grid(row=0, column=0, sticky='new', padx=10, pady=10)
         
     def _initial_heading_resize(self):
-        """
-        Calculates the initial font size only when the window's geometry is valid.
-        Called once by after(100).
-        """
-        # Force pending geometry changes to be processed
+        """Calculates the initial font size only when the window's geometry is valid."""
         self.master.update_idletasks() 
         
-        # Check if the width is greater than a minimal value (i.e., not 1)
         if self.master.winfo_width() > 100:
             current_width = self.master.winfo_width()
             self._calculate_and_set_font_size(current_width)
 
     def _resize_heading_font(self, event):
-        """
-        Dynamically adjusts the heading font size based on the window width 
-        during the <Configure> (resizing) event.
-        """
+        """Dynamically adjusts the heading font size based on the window width during resizing."""
         self._calculate_and_set_font_size(event.width)
 
     def _calculate_and_set_font_size(self, width):
         """Common logic to calculate and set the new font size."""
-        # Calculate a new font size based on the window's width
-        # The divisor (e.g., 30) controls how aggressively the font scales.
         new_size = max(10, int(width / 30))
         
-        # Check if the size actually changed to avoid excessive updates
         if new_size != self.heading_font['size']:
             self.heading_font.config(size=new_size)
 
-    # --- Other Methods (Deletion, Reorganization, etc. - Unchanged) ---
     def _setup_note_container(self):
         self.note_container = tk.Frame(self.master, bg=THEME_BG_MAIN)
         self.note_container.grid(row=1, column=0, sticky='nsew')
